@@ -11,6 +11,10 @@ src/test_litecoin
 *.patch
 .litecoin
 
+#IDE
+.project
+.cproject
+
 # Compilation and Qt preprocessor part
 *.qm
 Makefile
