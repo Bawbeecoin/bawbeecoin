@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2012 The Bitcoin developers
+// Copyright (c) 2013-2014 Dr Kimoto Chan (Kimoto Gravity Well)
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,7 +32,7 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 hashGenesisBlock("0x2902c0af53e22af2d4c0a09879858f20a2e8f756c08de0c5384be9dbcb7c2d3e");
+uint256 hashGenesisBlock("0xdbc5a995019c11631766da6849f44b02c4d0df53e19bb3534bff31eb476df092");
 //uint256 hashGenesisBlock("0x119c9ddc189cd61f2f5c67173dd3b2260fdde6d7bc995cdd8f8297d5fe613382");
 static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Bawbeecoin: starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
@@ -1064,16 +1065,18 @@ uint256 static GetOrphanRoot(const CBlockHeader* pblock)
 
 int64 static GetBlockValue(int nHeight, int64 nFees)
 {
-    int64 nSubsidy = 50 * COIN;
+    //int64 nSubsidy = 50 * COIN;
+    int64 nSubsidy = 2 * COIN;
 
     // Subsidy is cut in half every 840000 blocks, which will occur approximately every 4 years
-    nSubsidy >>= (nHeight / 840000); // Bawbeecoin: 840k blocks in ~4 years
+    //nSubsidy >>= (nHeight / 840000); // Bawbeecoin: 840k blocks in ~4 years
+    nSubsidy >>= (nHeight / 525000); // 2 years
 
     return nSubsidy + nFees;
 }
 
-static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // Bawbeecoin: 3.5 days
-static const int64 nTargetSpacing = 2.5 * 60; // Bawbeecoin: 2.5 minutes
+static const int64 nTargetTimespan = 2 * 60 * 60; // 2 hours //3.5 * 24 * 60 * 60; // Bawbeecoin: 3.5 days
+static const int64 nTargetSpacing = 2 * 60; // 2 mins //2.5 * 60; // Bawbeecoin: 2.5 minutes
 static const int64 nInterval = nTargetTimespan / nTargetSpacing;
 
 //
@@ -1101,7 +1104,7 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     return bnResult.GetCompact();
 }
 
-unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+unsigned int static GetNextWorkRequired_V1(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
     unsigned int nProofOfWorkLimit = bnProofOfWorkLimit.GetCompact();
 
@@ -1168,6 +1171,94 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     printf("After:  %08x  %s\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str());
 
     return bnNew.GetCompact();
+}
+
+// Komito Gravity Well - Difficulty Regulator
+unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBlockHeader *pblock, uint64 TargetBlocksSpacingSeconds, uint64 PastBlocksMin, uint64 PastBlocksMax) {
+	/* current difficulty formula, megacoin - kimoto gravity well */
+	const CBlockIndex  *BlockLastSolved				= pindexLast;
+	const CBlockIndex  *BlockReading				= pindexLast;
+	const CBlockHeader *BlockCreating				= pblock;
+						BlockCreating				= BlockCreating;
+	uint64				PastBlocksMass				= 0;
+	int64				PastRateActualSeconds		= 0;
+	int64				PastRateTargetSeconds		= 0;
+	double				PastRateAdjustmentRatio		= double(1);
+	CBigNum				PastDifficultyAverage;
+	CBigNum				PastDifficultyAveragePrev;
+	double				EventHorizonDeviation;
+	double				EventHorizonDeviationFast;
+	double				EventHorizonDeviationSlow;
+
+    if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || (uint64)BlockLastSolved->nHeight < PastBlocksMin) { return bnProofOfWorkLimit.GetCompact(); }
+
+	for (unsigned int i = 1; BlockReading && BlockReading->nHeight > 0; i++) {
+		if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
+		PastBlocksMass++;
+
+		if (i == 1)	{ PastDifficultyAverage.SetCompact(BlockReading->nBits); }
+		else		{ PastDifficultyAverage = ((CBigNum().SetCompact(BlockReading->nBits) - PastDifficultyAveragePrev) / i) + PastDifficultyAveragePrev; }
+		PastDifficultyAveragePrev = PastDifficultyAverage;
+
+		PastRateActualSeconds			= BlockLastSolved->GetBlockTime() - BlockReading->GetBlockTime();
+		PastRateTargetSeconds			= TargetBlocksSpacingSeconds * PastBlocksMass;
+		PastRateAdjustmentRatio			= double(1);
+		if (PastRateActualSeconds < 0) { PastRateActualSeconds = 0; }
+		if (PastRateActualSeconds != 0 && PastRateTargetSeconds != 0) {
+		PastRateAdjustmentRatio			= double(PastRateTargetSeconds) / double(PastRateActualSeconds);
+		}
+		EventHorizonDeviation			= 1 + (0.7084 * pow((double(PastBlocksMass)/double(144)), -1.228));
+		EventHorizonDeviationFast		= EventHorizonDeviation;
+		EventHorizonDeviationSlow		= 1 / EventHorizonDeviation;
+
+		if (PastBlocksMass >= PastBlocksMin) {
+			if ((PastRateAdjustmentRatio <= EventHorizonDeviationSlow) || (PastRateAdjustmentRatio >= EventHorizonDeviationFast)) { assert(BlockReading); break; }
+		}
+		if (BlockReading->pprev == NULL) { assert(BlockReading); break; }
+		BlockReading = BlockReading->pprev;
+	}
+
+	CBigNum bnNew(PastDifficultyAverage);
+	if (PastRateActualSeconds != 0 && PastRateTargetSeconds != 0) {
+		bnNew *= PastRateActualSeconds;
+		bnNew /= PastRateTargetSeconds;
+	}
+    if (bnNew > bnProofOfWorkLimit) { bnNew = bnProofOfWorkLimit; }
+
+    /// debug print
+    printf("Difficulty Retarget - Kimoto Gravity Well\n");
+    printf("PastRateAdjustmentRatio = %g\n", PastRateAdjustmentRatio);
+    printf("Before: %08x  %s\n", BlockLastSolved->nBits, CBigNum().SetCompact(BlockLastSolved->nBits).getuint256().ToString().c_str());
+    printf("After:  %08x  %s\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str());
+
+	return bnNew.GetCompact();
+}
+
+unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+{
+	static const int64	BlocksTargetSpacing			= 2 * 60; // 2.5 minutes
+	unsigned int		TimeDaySeconds				= 60 * 60 * 24;
+	int64				PastSecondsMin				= TimeDaySeconds * 0.25;
+	int64				PastSecondsMax				= TimeDaySeconds * 7;
+	uint64				PastBlocksMin				= PastSecondsMin / BlocksTargetSpacing;
+	uint64				PastBlocksMax				= PastSecondsMax / BlocksTargetSpacing;
+
+	return KimotoGravityWell(pindexLast, pblock, BlocksTargetSpacing, PastBlocksMin, PastBlocksMax);
+}
+
+unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+{
+	int DiffMode = 1;
+	if (fTestNet) {
+		if (pindexLast->nHeight+1 >= 1) { DiffMode = 2; }
+	}
+	else {
+		if (pindexLast->nHeight+1 >= 2) { DiffMode = 2; }
+	}
+
+	if		(DiffMode == 1) { return GetNextWorkRequired_V1(pindexLast, pblock); }
+	else if	(DiffMode == 2) { return GetNextWorkRequired_V2(pindexLast, pblock); }
+	return GetNextWorkRequired_V2(pindexLast, pblock);
 }
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits)
@@ -2762,21 +2853,21 @@ bool InitBlockIndex() {
         txNew.vin.resize(1);
         txNew.vout.resize(1);
         txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
-        txNew.vout[0].nValue = 50 * COIN;
+        txNew.vout[0].nValue = 2 * COIN;
         txNew.vout[0].scriptPubKey = CScript() << ParseHex("040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9") << OP_CHECKSIG;
         CBlock block;
         block.vtx.push_back(txNew);
         block.hashPrevBlock = 0;
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
-        block.nTime    = 1393759057;
+        block.nTime    = 1395465652;
         block.nBits    = 0x1e0ffff0;
-        block.nNonce   = 2087326101; //2084524493;
+        block.nNonce   = 2063898100; // 2087326101; //2084524493;
 
         if (fTestNet)
         {
-            block.nTime    = 1393759057;
-            block.nNonce   = 2087326101; //2084524493;
+            block.nTime    = 1395451974;
+            block.nNonce   = 2063632756; // 2087326101; //2084524493;
         }
 
         //// debug print
@@ -2784,7 +2875,58 @@ bool InitBlockIndex() {
         printf("%s\n", hash.ToString().c_str());
         printf("%s\n", hashGenesisBlock.ToString().c_str());
         printf("%s\n", block.hashMerkleRoot.ToString().c_str());
-        assert(block.hashMerkleRoot == uint256("0xd7693e1e05cb65780ce58f89ce84ed233a6fb8d7cf77320a132989cc06869deb"));
+        assert(block.hashMerkleRoot == uint256("0x520c93e4c2a5f39cfa2873527b2b8f03c1e553fe3929c9550b7eb51e2e7d41f5"));
+
+
+        // Mine a Genesis Block START ***************
+        // If genesis block hash does not match, then generate new genesis hash.
+        /*
+        if (true && block.GetHash() != hashGenesisBlock)
+        {
+            printf("Searching for genesis block...\n");
+            // This will figure out a valid hash and Nonce if you're
+            // creating a different genesis block:
+            uint256 hashTarget = CBigNum().SetCompact(block.nBits).getuint256();
+            uint256 thash;
+            char scratchpad[SCRYPT_SCRATCHPAD_SIZE];
+
+            loop
+            {
+#if defined(USE_SSE2)
+                // Detection would work, but in cases where we KNOW it always has SSE2,
+                // it is faster to use directly than to use a function pointer or conditional.
+#if defined(_M_X64) || defined(__x86_64__) || defined(_M_AMD64) || (defined(MAC_OSX) && defined(__i386__))
+                // Always SSE2: x86_64 or Intel MacOS X
+                scrypt_1024_1_1_256_sp_sse2(BEGIN(block.nVersion), BEGIN(thash), scratchpad);
+#else
+                // Detect SSE2: 32bit x86 Linux or Windows
+                scrypt_1024_1_1_256_sp(BEGIN(block.nVersion), BEGIN(thash), scratchpad);
+#endif
+#else
+                // Generic scrypt
+                scrypt_1024_1_1_256_sp_generic(BEGIN(block.nVersion), BEGIN(thash), scratchpad);
+#endif
+                if (thash <= hashTarget)
+                    break;
+                if ((block.nNonce & 0xFFF) == 0)
+                {
+                    printf("nonce %08X: hash = %s (target = %s)\n", block.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
+                }
+                ++block.nNonce;
+                if (block.nNonce == 0)
+                {
+                    printf("NONCE WRAPPED, incrementing time\n");
+                    ++block.nTime;
+                }
+            }
+            printf("block.nTime = %u \n", block.nTime);
+            printf("block.nNonce = %u \n", block.nNonce);
+            printf("block.GetHash = %s\n", block.GetHash().ToString().c_str());
+        }
+		*/
+        // *************** END
+
+
         block.print();
         assert(hash == hashGenesisBlock);
 
