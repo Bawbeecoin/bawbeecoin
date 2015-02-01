@@ -1239,19 +1239,10 @@ void ThreadDNSAddressSeed()
 }
 
 
-
-
-
-
-
-
-
-
-
-
+// pnSeed Initial IP Addresses
 unsigned int pnSeed[] =
 {
-	0xa8d3fd36, 0x33fcfd36, 0xc95ac80e
+	0x87c4ce36, 0xc95ac80e
 };
 
 void DumpAddresses()

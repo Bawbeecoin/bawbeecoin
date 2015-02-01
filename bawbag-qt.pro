@@ -1,6 +1,6 @@
 TEMPLATE = app
-TARGET = bawbeecoin-qt
-macx:TARGET = "Bawbeecoin-Qt"
+TARGET = bawbag #bawbeecoin-qt
+macx:TARGET = "BAWBag" #"Bawbeecoin-Qt"
 VERSION = 0.8.6.2
 INCLUDEPATH += src src/json src/qt
 QT += core gui network

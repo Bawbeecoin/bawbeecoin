@@ -10,6 +10,8 @@ src/test_bawbeecoin
 *.o
 *.patch
 .bawbeecoin
+bawbag
+bawbag.exe
 
 #IDE
 .project
@@ -36,3 +38,15 @@ qrc_*.cpp
 build
 
 !src/leveldb*/Makefile
+
+# Windows builds
+debug
+release
+object_script.*
+Makefile.Debug
+bawbag-qt.win.pro
+
+# Personal tools
+build.sh
+build.win.txt
+deploy.sh

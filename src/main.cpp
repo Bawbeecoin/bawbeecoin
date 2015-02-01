@@ -32,9 +32,9 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 hashGenesisBlock("0xdbc5a995019c11631766da6849f44b02c4d0df53e19bb3534bff31eb476df092");
+uint256 hashGenesisBlock("0xe8e32dfcde756f9d400ec49a5fb0a3ff83b9e3375f7fa72957465c4a697ab8fb");
 //uint256 hashGenesisBlock("0x119c9ddc189cd61f2f5c67173dd3b2260fdde6d7bc995cdd8f8297d5fe613382");
-static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Bawbeecoin: starting difficulty is 1 / 2^12
+static CBigNum bnProofOfWorkLimit(~uint256(0) >> 28); // 32 // 20 Bawbeecoin: starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 uint256 nBestChainWork = 0;
@@ -1236,7 +1236,7 @@ unsigned int static KimotoGravityWell(const CBlockIndex* pindexLast, const CBloc
 
 unsigned int static GetNextWorkRequired_V2(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
-	static const int64	BlocksTargetSpacing			= 2 * 60; // 2.5 minutes
+	static const int64	BlocksTargetSpacing			= 2 * 60; // 2 minutes
 	unsigned int		TimeDaySeconds				= 60 * 60 * 24;
 	int64				PastSecondsMin				= TimeDaySeconds * 0.25;
 	int64				PastSecondsMax				= TimeDaySeconds * 7;
@@ -2860,9 +2860,9 @@ bool InitBlockIndex() {
         block.hashPrevBlock = 0;
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
-        block.nTime    = 1395465652;
-        block.nBits    = 0x1e0ffff0;
-        block.nNonce   = 2063898100; // 2087326101; //2084524493;
+        block.nTime    = 1397263102;
+        block.nBits    = 0x1d0fffff; // 0x1d00ffff; // 0x1e0ffff0;
+        block.nNonce   = 1307519674; //1000000000; //2063898199; // 0 // 2087326101; //2084524493;
 
         if (fTestNet)
         {
@@ -2875,12 +2875,15 @@ bool InitBlockIndex() {
         printf("%s\n", hash.ToString().c_str());
         printf("%s\n", hashGenesisBlock.ToString().c_str());
         printf("%s\n", block.hashMerkleRoot.ToString().c_str());
+
+        printf("min nBit:  %08x\n", bnProofOfWorkLimit.GetCompact());
+
         assert(block.hashMerkleRoot == uint256("0x520c93e4c2a5f39cfa2873527b2b8f03c1e553fe3929c9550b7eb51e2e7d41f5"));
 
 
         // Mine a Genesis Block START ***************
         // If genesis block hash does not match, then generate new genesis hash.
-        /*
+/*
         if (true && block.GetHash() != hashGenesisBlock)
         {
             printf("Searching for genesis block...\n");
@@ -2923,9 +2926,9 @@ bool InitBlockIndex() {
             printf("block.nNonce = %u \n", block.nNonce);
             printf("block.GetHash = %s\n", block.GetHash().ToString().c_str());
         }
-		*/
-        // *************** END
 
+        // *************** END
+*/
 
         block.print();
         assert(hash == hashGenesisBlock);
@@ -3195,11 +3198,11 @@ bool static AlreadyHave(const CInv& inv)
 
 
 
-
+// TODO: Change this
 // The message start string is designed to be unlikely to occur in normal data.
 // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
 // a large 4-byte int at any alignment.
-unsigned char pchMessageStart[4] = { 0xfb, 0xc0, 0xb6, 0xdb }; // Bawbeecoin: increase each by adding 2 to bitcoin's value.
+unsigned char pchMessageStart[4] = { 0xe1, 0xbb, 0xbb, 0xf7 }; // Bawbeecoin: increase each by adding 2 to bitcoin's value.
 
 
 void static ProcessGetData(CNode* pfrom)
