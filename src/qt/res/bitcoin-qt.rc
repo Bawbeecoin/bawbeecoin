@@ -21,13 +21,13 @@ BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
             VALUE "CompanyName",        "Bawbeecoin"
-            VALUE "FileDescription",    "BAWBag (OSS GUI client for Bawbeecoin)" #Bawbeecoin-Qt
+            VALUE "FileDescription",    "BAWBag (OSS GUI client for Bawbeecoin)"
             VALUE "FileVersion",        VER_FILEVERSION_STR
             VALUE "InternalName",       "bawbeecoin-qt"
             VALUE "LegalCopyright",     COPYRIGHT_STR
             VALUE "LegalTrademarks1",   "Distributed under the MIT/X11 software license, see the accompanying file COPYING or http://www.opensource.org/licenses/mit-license.php."
-            VALUE "OriginalFilename",   "bawbag.exe" #bawbeecoin-qt
-            VALUE "ProductName",        "BAWBag" #Bawbeecoin-Qt
+            VALUE "OriginalFilename",   "bawbag.exe"
+            VALUE "ProductName",        "BAWBag"
             VALUE "ProductVersion",     VER_PRODUCTVERSION_STR
         END
     END

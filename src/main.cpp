@@ -32,9 +32,10 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
+// The Bawbeecoin Genesis Block
 uint256 hashGenesisBlock("0xe8e32dfcde756f9d400ec49a5fb0a3ff83b9e3375f7fa72957465c4a697ab8fb");
-//uint256 hashGenesisBlock("0x119c9ddc189cd61f2f5c67173dd3b2260fdde6d7bc995cdd8f8297d5fe613382");
-static CBigNum bnProofOfWorkLimit(~uint256(0) >> 28); // 32 // 20 Bawbeecoin: starting difficulty is 1 / 2^12
+// Bawbeecoin custom minimum difficulty
+static CBigNum bnProofOfWorkLimit(~uint256(0) >> 28); // Bawbeecoin: starting difficulty is harder than 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 uint256 nBestChainWork = 0;
@@ -2861,13 +2862,13 @@ bool InitBlockIndex() {
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
         block.nTime    = 1397263102;
-        block.nBits    = 0x1d0fffff; // 0x1d00ffff; // 0x1e0ffff0;
-        block.nNonce   = 1307519674; //1000000000; //2063898199; // 0 // 2087326101; //2084524493;
+        block.nBits    = 0x1d0fffff; // Harder initial difficulty
+        block.nNonce   = 1307519674;
 
         if (fTestNet)
         {
             block.nTime    = 1395451974;
-            block.nNonce   = 2063632756; // 2087326101; //2084524493;
+            block.nNonce   = 2063632756;
         }
 
         //// debug print
@@ -2876,14 +2877,15 @@ bool InitBlockIndex() {
         printf("%s\n", hashGenesisBlock.ToString().c_str());
         printf("%s\n", block.hashMerkleRoot.ToString().c_str());
 
-        printf("min nBit:  %08x\n", bnProofOfWorkLimit.GetCompact());
+        // Print out min/start difficulty
+        // printf("min nBit:  %08x\n", bnProofOfWorkLimit.GetCompact());
 
         assert(block.hashMerkleRoot == uint256("0x520c93e4c2a5f39cfa2873527b2b8f03c1e553fe3929c9550b7eb51e2e7d41f5"));
 
 
         // Mine a Genesis Block START ***************
         // If genesis block hash does not match, then generate new genesis hash.
-/*
+        /*
         if (true && block.GetHash() != hashGenesisBlock)
         {
             printf("Searching for genesis block...\n");
@@ -2928,7 +2930,7 @@ bool InitBlockIndex() {
         }
 
         // *************** END
-*/
+        */
 
         block.print();
         assert(hash == hashGenesisBlock);
@@ -3198,7 +3200,6 @@ bool static AlreadyHave(const CInv& inv)
 
 
 
-// TODO: Change this
 // The message start string is designed to be unlikely to occur in normal data.
 // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
 // a large 4-byte int at any alignment.
