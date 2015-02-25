@@ -13,9 +13,11 @@ src/test_bawbeecoin
 bawbag
 bawbag.exe
 
-#IDE
+#IDEs
 .project
 .cproject
+.idea
+CMakeLists.txt
 
 # Compilation and Qt preprocessor part
 *.qm
