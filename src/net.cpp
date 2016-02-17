@@ -1223,7 +1223,7 @@ void ThreadDNSAddressSeed()
 // pnSeed Initial IP Addresses
 unsigned int pnSeed[] =
 {
-	0x87c4ce36, 0xc95ac80e
+	0x715dc780, 0x6709652e
 };
 
 void DumpAddresses()
